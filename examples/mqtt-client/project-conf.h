@@ -63,6 +63,7 @@
  */
 #define MQTT_CLIENT_CONF_USERNAME "mqtt-client-username"
 
+#define CC13XX_CONF_PROP_MODE 0
 /*
  * The MQTT auth token (password) used when connecting to the MQTT broker.
  *
