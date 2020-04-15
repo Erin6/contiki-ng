@@ -30,13 +30,42 @@
  */
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
-#include "builtin-sensors.h"
-#include "sht25-sensors.h"
-#include "tsl256-sensors.h"
+#include "dev/i2c.h"
+#include "dev/leds.h"
+#include "dev/tsl256x.h"
 #include "mqtt-client.h"
 
+#include <stdio.h>
+/*---------------------------------------------------------------------------*/
+#define TMP_BUF_SZ 32
+/*---------------------------------------------------------------------------*/
+/* Default sensor's integration cycle is 402ms */
+#define SENSOR_READ_INTERVAL (CLOCK_SECOND)
+/*---------------------------------------------------------------------------*/
+char tmp_buf[TMP_BUF_SZ];
+static int16_t light;
+/*---------------------------------------------------------------------------*/
 
-#include <string.h>
+static char *
+temp_reading(void)
+{
+  memset(tmp_buf, 0, TMP_BUF_SZ);
+  light = tsl256x.value(TSL256X_VAL_READ);
+  snprintf(tmp_buf, TMP_BUF_SZ,"\"Light\":%u", (uint16_t)light);
+  return tmp_buf;
+}
 /*---------------------------------------------------------------------------*/
-MQTT_CLIENT_EXTENSIONS(&builtin_sensors_cc2538_temp,&builtin_sensors_vdd3, &sht25_zoul_temp,&sht25_zoul_humidity, &tsl256_zoul_light);
+static void
+temp_init(void)
+{
+  SENSORS_ACTIVATE(tsl256x);
+  tsl256x.configure(TSL256X_INT_OVER, 0x15B8);
+}
 /*---------------------------------------------------------------------------*/
+const mqtt_client_extension_t tsl256_zoul_light= {
+  temp_init,
+  temp_reading,
+};
+/*---------------------------------------------------------------------------*/
+
+

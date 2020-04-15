@@ -30,13 +30,66 @@
  */
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
-#include "builtin-sensors.h"
-#include "sht25-sensors.h"
-#include "tsl256-sensors.h"
+#include "dev/sht25.h"
 #include "mqtt-client.h"
 
 
 #include <string.h>
+#include <stdio.h>
 /*---------------------------------------------------------------------------*/
-MQTT_CLIENT_EXTENSIONS(&builtin_sensors_cc2538_temp,&builtin_sensors_vdd3, &sht25_zoul_temp,&sht25_zoul_humidity, &tsl256_zoul_light);
+#define TMP_BUF_SZ 32
 /*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+char tmp_buf[TMP_BUF_SZ];
+int16_t temperature, humidity;
+
+/*---------------------------------------------------------------------------*/
+static char *
+temp_reading(void)
+{
+
+  memset(tmp_buf, 0, TMP_BUF_SZ);
+  temperature=sht25.value(SHT25_VAL_TEMP);
+  snprintf(tmp_buf, TMP_BUF_SZ, "\"Temperature(ºC)\":%02d.%02d", 
+           temperature / 100, temperature % 100);
+  return tmp_buf;
+}
+/*---------------------------------------------------------------------------*/
+static void
+temp_init(void)
+{
+  SENSORS_ACTIVATE(sht25);
+  sht25.configure(SHT25_RESOLUTION, SHT2X_RES_14T_12RH);
+}
+/*---------------------------------------------------------------------------*/
+const mqtt_client_extension_t sht25_zoul_temp= {
+  temp_init,
+  temp_reading,
+};
+/*---------------------------------------------------------------------------*/
+static char *
+hum_reading(void)
+{
+  memset(tmp_buf, 0, TMP_BUF_SZ);
+  humidity=sht25.value(SHT25_VAL_HUM);
+  snprintf(tmp_buf, TMP_BUF_SZ, "\"Humidity(RH)\":%02d.%02d",
+           humidity / 100, humidity % 100);
+  return tmp_buf;
+}
+/*---------------------------------------------------------------------------*/
+static void
+hum_init(void)
+{
+  SENSORS_ACTIVATE(sht25);
+  sht25.configure(SHT25_RESOLUTION, SHT2X_RES_14T_12RH);
+}
+
+/*---------------------------------------------------------------------------*/
+const mqtt_client_extension_t sht25_zoul_humidity= {
+  hum_init,	
+  hum_reading,
+};
+/*---------------------------------------------------------------------------*/
+
+

@@ -29,14 +29,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*---------------------------------------------------------------------------*/
-#include "contiki.h"
-#include "builtin-sensors.h"
-#include "sht25-sensors.h"
-#include "tsl256-sensors.h"
-#include "mqtt-client.h"
-
-
-#include <string.h>
+#ifndef TSL256_SENSORS_H_
+#define TSL256_SENSORS_H_
 /*---------------------------------------------------------------------------*/
-MQTT_CLIENT_EXTENSIONS(&builtin_sensors_cc2538_temp,&builtin_sensors_vdd3, &sht25_zoul_temp,&sht25_zoul_humidity, &tsl256_zoul_light);
+#include "contiki.h"
+#include "mqtt-client.h"
+/*---------------------------------------------------------------------------*/
+extern const mqtt_client_extension_t tsl256_zoul_light;
+
+/*---------------------------------------------------------------------------*/
+#endif /* TSL256_SENSORS_H_ */
 /*---------------------------------------------------------------------------*/
