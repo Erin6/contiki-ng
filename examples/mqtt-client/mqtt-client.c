@@ -43,6 +43,8 @@
 #include "os/sys/log.h"
 #include "mqtt-client.h"
 
+
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 /*---------------------------------------------------------------------------*/
@@ -249,17 +251,7 @@ static const uint8_t mqtt_client_extension_count = 0;
 #endif
 /*---------------------------------------------------------------------------*/
 PROCESS(mqtt_client_process, "MQTT Client");
-/*---------------------------------------------------------------------------*/
-static bool
-have_connectivity(void)
-{
-  if(uip_ds6_get_global(ADDR_PREFERRED) == NULL ||
-     uip_ds6_defrt_choose() == NULL) {
-    return false;
-  }
-  return true;
-}
-/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
 static int
 ipaddr_sprintf(char *buf, uint8_t buf_len, const uip_ipaddr_t *addr)
 {
@@ -284,7 +276,7 @@ ipaddr_sprintf(char *buf, uint8_t buf_len, const uip_ipaddr_t *addr)
 
   return len;
 }
-/*---------------------------------------------------------------------------*/
+---------------------------------------------------------------------------*/
 static void
 echo_reply_handler(uip_ipaddr_t *source, uint8_t ttl, uint8_t *data,
                    uint16_t datalen)
@@ -518,7 +510,7 @@ publish(void)
   int len;
   int remaining = APP_BUFFER_SIZE;
   int i;
-  char def_rt_str[64];
+  //char def_rt_str[64];
 
   seq_nr_value++;
 
@@ -526,14 +518,14 @@ publish(void)
 
   len = snprintf(buf_ptr, remaining,
                  "{"
-                 "\"d\":{"
-                 "\"Platform\":\""CONTIKI_TARGET_STRING"\","
+                 "\"tags\":{"
+                 "\"device_id\":\""CONTIKI_TARGET_STRING"\""
 #ifdef CONTIKI_BOARD_STRING
-                 "\"Board\":\""CONTIKI_BOARD_STRING"\","
+                 ",\"device_type\":\""CONTIKI_BOARD_STRING"\""
 #endif
-                 "\"Seq #\":%d,"
+                /* "\"Seq #\":%d,"
                  "\"Uptime (sec)\":%lu",
-                 seq_nr_value, clock_seconds());
+                 seq_nr_value, clock_seconds()*/ );
 
   if(len < 0 || len >= remaining) {
     LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining,
@@ -544,13 +536,16 @@ publish(void)
   remaining -= len;
   buf_ptr += len;
 
-  /* Put our Default route's string representation in a buffer */
+  /* Put our Default route's string representation in a buffer 
   memset(def_rt_str, 0, sizeof(def_rt_str));
   ipaddr_sprintf(def_rt_str, sizeof(def_rt_str), uip_ds6_defrt_choose());
 
   len = snprintf(buf_ptr, remaining,
                  ",\"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
-                 def_rt_str, def_rt_rssi);
+                 def_rt_str, def_rt_rssi);*/
+  len = snprintf(buf_ptr, remaining,
+                 "},\"fields\":{"
+                );
 
   if(len < 0 || len >= remaining) {
     LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining,
@@ -561,8 +556,16 @@ publish(void)
   buf_ptr += len;
 
   for(i = 0; i < mqtt_client_extension_count; i++) {
-    len = snprintf(buf_ptr, remaining, ",%s",
-                   mqtt_client_extensions[i]->value());
+    if((i < (mqtt_client_extension_count-1))){
+      len = snprintf(buf_ptr, remaining, "%s,",
+      mqtt_client_extensions[i]->value());
+    }else{
+      len = snprintf(buf_ptr, remaining, "%s",
+      mqtt_client_extensions[i]->value());
+    }
+      
+    
+    
 
     if(len < 0 || len >= remaining) {
       LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining,
@@ -601,12 +604,12 @@ connect_to_broker(void)
 static void
 ping_parent(void)
 {
-  if(have_connectivity()) {
-    uip_icmp6_send(uip_ds6_defrt_choose(), ICMP6_ECHO_REQUEST, 0,
-                   ECHO_REQ_PAYLOAD_LEN);
-  } else {
-    LOG_WARN("ping_parent() is called while we don't have connectivity\n");
+  if(uip_ds6_get_global(ADDR_PREFERRED) == NULL) {
+    return;
   }
+
+  uip_icmp6_send(uip_ds6_defrt_choose(), ICMP6_ECHO_REQUEST, 0,
+                 ECHO_REQ_PAYLOAD_LEN);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -641,7 +644,7 @@ state_machine(void)
     LOG_DBG("Init\n");
     /* Continue */
   case STATE_REGISTERED:
-    if(have_connectivity()) {
+    if(uip_ds6_get_global(ADDR_PREFERRED) != NULL) {
       /* Registered and with a public IP. Connect */
       LOG_DBG("Registered. Connect attempt %u\n", connect_attempt);
       ping_parent();
@@ -809,4 +812,13 @@ PROCESS_THREAD(mqtt_client_process, ev, data)
 
   PROCESS_END();
 }
+
 /*---------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+
