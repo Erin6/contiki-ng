@@ -61,7 +61,7 @@
  * If the node has a broker IP setting saved on flash, this value here will
  * get ignored
  */
-static const char *broker_ip = "0064:ff9b:0000:0000:0000:0000:b8ac:7cbd";
+static const char *broker_ip = "fd00::1";
 /*---------------------------------------------------------------------------*/
 /*
  * A timeout used when waiting for something to happen (e.g. to connect or to
@@ -642,12 +642,13 @@ publish(void)
   buf_ptr = app_buffer;
 
   len = snprintf(buf_ptr, remaining,
-                 "{"
-                 "\"d\":{"
-                 "\"myName\":\"%s\","
-                 "\"Seq #\":%d,"
-                 "\"Uptime (sec)\":%lu",
-                 BOARD_STRING, seq_nr_value, clock_seconds());
+                  "{"
+                 "\"tags\":{"
+                 "\"device_id\":\""CONTIKI_TARGET_STRING"\","
+#ifdef CONTIKI_BOARD_STRING
+                 "\"device_type\":\""CONTIKI_BOARD_STRING"\"},"
+#endif           
+                );
 
   if(len < 0 || len >= remaining) {
     printf("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
@@ -662,7 +663,8 @@ publish(void)
   cc26xx_web_demo_ipaddr_sprintf(def_rt_str, sizeof(def_rt_str),
                                  uip_ds6_defrt_choose());
 
-  len = snprintf(buf_ptr, remaining, ",\"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
+
+  len = snprintf(buf_ptr, remaining, "\"fields\":{ \"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
                  def_rt_str, def_rt_rssi);
 
   if(len < 0 || len >= remaining) {
