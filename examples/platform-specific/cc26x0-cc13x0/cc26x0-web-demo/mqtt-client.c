@@ -642,10 +642,13 @@ publish(void)
   buf_ptr = app_buffer;
 
   len = snprintf(buf_ptr, remaining,
-                 "{"
+                  "{"
                  "\"tags\":{"
-                 "\"device_type\":\""BOARD_STRING"\"}"
-                 );
+                 "\"device_id\":\""CONTIKI_TARGET_STRING"\","
+#ifdef CONTIKI_BOARD_STRING
+                 "\"device_type\":\""CONTIKI_BOARD_STRING"\"},"
+#endif           
+                );
 
   if(len < 0 || len >= remaining) {
     printf("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
@@ -661,7 +664,7 @@ publish(void)
                                  uip_ds6_defrt_choose());
 
 
-  len = snprintf(buf_ptr, remaining, ",\"Fields\":{ \"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
+  len = snprintf(buf_ptr, remaining, "\"fields\":{ \"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
                  def_rt_str, def_rt_rssi);
 
   if(len < 0 || len >= remaining) {
