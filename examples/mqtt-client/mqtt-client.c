@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include  <time.h> 
 /*---------------------------------------------------------------------------*/
 #define LOG_MODULE "mqtt-client"
 #ifdef MQTT_CLIENT_CONF_LOG_LEVEL
@@ -251,32 +252,7 @@ static const uint8_t mqtt_client_extension_count = 0;
 #endif
 /*---------------------------------------------------------------------------*/
 PROCESS(mqtt_client_process, "MQTT Client");
-/*---------------------------------------------------------------------------
-static int
-ipaddr_sprintf(char *buf, uint8_t buf_len, const uip_ipaddr_t *addr)
-{
-  uint16_t a;
-  uint8_t len = 0;
-  int i, f;
-  for(i = 0, f = 0; i < sizeof(uip_ipaddr_t); i += 2) {
-    a = (addr->u8[i] << 8) + addr->u8[i + 1];
-    if(a == 0 && f >= 0) {
-      if(f++ == 0) {
-        len += snprintf(&buf[len], buf_len - len, "::");
-      }
-    } else {
-      if(f > 0) {
-        f = -1;
-      } else if(i > 0) {
-        len += snprintf(&buf[len], buf_len - len, ":");
-      }
-      len += snprintf(&buf[len], buf_len - len, "%x", a);
-    }
-  }
 
-  return len;
-}
----------------------------------------------------------------------------*/
 static void
 echo_reply_handler(uip_ipaddr_t *source, uint8_t ttl, uint8_t *data,
                    uint16_t datalen)
@@ -510,22 +486,18 @@ publish(void)
   int len;
   int remaining = APP_BUFFER_SIZE;
   int i;
-  //char def_rt_str[64];
-
   seq_nr_value++;
 
   buf_ptr = app_buffer;
 
   len = snprintf(buf_ptr, remaining,
-                 "{"
+                 "[{"
                  "\"tags\":{"
-                 "\"device_id\":\""CONTIKI_TARGET_STRING"\""
+                 "\"device_id\":\""CONTIKI_TARGET_STRING"\","
 #ifdef CONTIKI_BOARD_STRING
-                 ",\"device_type\":\""CONTIKI_BOARD_STRING"\""
-#endif
-                /* "\"Seq #\":%d,"
-                 "\"Uptime (sec)\":%lu",
-                 seq_nr_value, clock_seconds()*/ );
+                 "\"device_type\":\""CONTIKI_BOARD_STRING"\"},"
+#endif           
+                );
 
   if(len < 0 || len >= remaining) {
     LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining,
@@ -536,15 +508,8 @@ publish(void)
   remaining -= len;
   buf_ptr += len;
 
-  /* Put our Default route's string representation in a buffer 
-  memset(def_rt_str, 0, sizeof(def_rt_str));
-  ipaddr_sprintf(def_rt_str, sizeof(def_rt_str), uip_ds6_defrt_choose());
-
   len = snprintf(buf_ptr, remaining,
-                 ",\"Def Route\":\"%s\",\"RSSI (dBm)\":%d",
-                 def_rt_str, def_rt_rssi);*/
-  len = snprintf(buf_ptr, remaining,
-                 "},\"fields\":{"
+                 "\"fields\":{"
                 );
 
   if(len < 0 || len >= remaining) {
@@ -560,11 +525,9 @@ publish(void)
       len = snprintf(buf_ptr, remaining, "%s,",
       mqtt_client_extensions[i]->value());
     }else{
-      len = snprintf(buf_ptr, remaining, "%s",
+      len = snprintf(buf_ptr, remaining, "%s}}]",
       mqtt_client_extensions[i]->value());
     }
-      
-    
     
 
     if(len < 0 || len >= remaining) {
@@ -574,14 +537,6 @@ publish(void)
     }
     remaining -= len;
     buf_ptr += len;
-  }
-
-  len = snprintf(buf_ptr, remaining, "}}");
-
-  if(len < 0 || len >= remaining) {
-    LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining,
-            len);
-    return;
   }
 
   mqtt_publish(&conn, NULL, pub_topic, (uint8_t *)app_buffer,
