@@ -491,7 +491,7 @@ publish(void)
   buf_ptr = app_buffer;
 
   len = snprintf(buf_ptr, remaining,
-                 "[{"
+                 "{"
                  "\"tags\":{"
                  "\"device_id\":\""CONTIKI_TARGET_STRING"\","
 #ifdef CONTIKI_BOARD_STRING
@@ -525,7 +525,7 @@ publish(void)
       len = snprintf(buf_ptr, remaining, "%s,",
       mqtt_client_extensions[i]->value());
     }else{
-      len = snprintf(buf_ptr, remaining, "%s}}]",
+      len = snprintf(buf_ptr, remaining, "%s}}",
       mqtt_client_extensions[i]->value());
     }
     
